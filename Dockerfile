@@ -1,13 +1,20 @@
-# build stage
-FROM maven:3.9.2-eclipse-temurin-17 AS build
+# Stage 1: Build
+FROM maven:3.9.5-eclipse-temurin-21 AS build
+
 WORKDIR /app
+
 COPY pom.xml .
 COPY src ./src
+
 RUN mvn -DskipTests package
 
-# runtime stage
-FROM eclipse-temurin:17-jre-jammy
+# Stage 2: Minimal runtime
+FROM eclipse-temurin:21-jdk-alpine
+
 WORKDIR /app
-COPY --from=build /app/target/sentiment-api-0.0.1-SNAPSHOT.jar app.jar
+
+COPY --from=build /app/target/*.jar sentiment-api.jar
+
 EXPOSE 8080
-ENTRYPOINT ["java","-jar","/app/app.jar"]
+
+CMD ["java", "-jar", "sentiment-api.jar"]

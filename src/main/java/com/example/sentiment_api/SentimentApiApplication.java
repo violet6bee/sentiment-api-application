@@ -6,7 +6,7 @@ import org.springframework.web.bind.annotation.*;
 
 @SpringBootApplication
 @RestController
-public class git init {
+public class SentimentApiApplication {
 
 	public static void main(String[] args) {
 		SpringApplication.run(SentimentApiApplication.class, args);
