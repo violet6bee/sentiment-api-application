@@ -1,20 +1,26 @@
-# Stage 1: Build
-FROM maven:3.9.5-eclipse-temurin-21 AS build
+# ---------- Stage 1: Build ----------
+FROM eclipse-temurin:21-jdk AS builder
 
 WORKDIR /app
 
+COPY mvnw .
+COPY .mvn .mvn
 COPY pom.xml .
+RUN ./mvnw dependency:go-offline
+
 COPY src ./src
+RUN ./mvnw package -DskipTests
 
-RUN mvn -DskipTests package
-
-# Stage 2: Minimal runtime
-FROM eclipse-temurin:21-jdk-alpine
+# ---------- Stage 2: Runtime ----------
+FROM eclipse-temurin:21-jre AS runtime
 
 WORKDIR /app
 
-COPY --from=build /app/target/*.jar sentiment-api.jar
+# Уменьшаем размер
+ENV JAVA_OPTS="--enable-preview"
+
+COPY --from=builder /app/target/*.jar app.jar
 
 EXPOSE 8080
 
-CMD ["java", "-jar", "sentiment-api.jar"]
+ENTRYPOINT ["java", "-jar", "app.jar"]
