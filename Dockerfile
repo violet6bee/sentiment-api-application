@@ -1,26 +1,29 @@
-# ---------- Stage 1: Build ----------
-FROM eclipse-temurin:21-jdk AS builder
+# Stage 1: Build with Maven
+FROM maven:3.9.5-eclipse-temurin-21 AS builder
 
 WORKDIR /app
 
-COPY mvnw .
-COPY .mvn .mvn
+# Копируем pom и исходники
 COPY pom.xml .
-RUN ./mvnw dependency:go-offline
-
 COPY src ./src
-RUN ./mvnw package -DskipTests
 
-# ---------- Stage 2: Runtime ----------
-FROM eclipse-temurin:21-jre AS runtime
+# Сборка jar без тестов
+RUN mvn -DskipTests package
+
+# Stage 2: Runtime
+FROM eclipse-temurin:21-jre-alpine
 
 WORKDIR /app
 
-# Уменьшаем размер
-ENV JAVA_OPTS="--enable-preview"
+# Копируем jar из билд-стадии
+COPY --from=builder /app/target/*.jar sentiment-api.jar
 
-COPY --from=builder /app/target/*.jar app.jar
+# Создание non-root пользователя
+RUN addgroup -S appgroup && adduser -S appuser -G appgroup && \
+    chown -R appuser:appgroup /app
+USER appuser
 
 EXPOSE 8080
 
-ENTRYPOINT ["java", "-jar", "app.jar"]
+# Запуск Spring Boot приложения
+CMD ["java", "-jar", "sentiment-api.jar"]
